@@ -2,7 +2,7 @@
 
 import { useQueryState, parseAsStringEnum } from "nuqs";
 import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { Suspense, useRef } from "react";
 
 const scenes = ["1", "2"] as const;
 const sceneUrls = {
@@ -17,7 +17,7 @@ const pageVariants = {
   exit: { opacity: 0, y: -20 },
 };
 
-export default function Home() {
+export function Home() {
   const [sceneQuery, setSceneQuery] = useQueryState(
     "scene",
     parseAsStringEnum([...scenes]).withDefault("1")
@@ -44,3 +44,13 @@ export default function Home() {
     </motion.div>
   );
 }
+
+const HomePage = () => {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+};
+
+export default HomePage;

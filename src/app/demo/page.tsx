@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryState, parseAsString, parseAsStringEnum } from "nuqs";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const themes = ["light", "dark"] as const;
@@ -59,7 +59,7 @@ const buttonVariants = {
   tap: { scale: 0.95 },
 };
 
-export default function Home() {
+export function Demo() {
   const [theme, setTheme] = useQueryState(
     "theme",
     parseAsStringEnum([...themes]).withDefault("light")
@@ -807,3 +807,13 @@ export default function Home() {
     </div>
   );
 }
+
+const DemoPage = () => {
+  return (
+    <Suspense>
+      <Demo />
+    </Suspense>
+  );
+};
+
+export default DemoPage;
