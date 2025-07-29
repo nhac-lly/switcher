@@ -6,8 +6,8 @@ import { Suspense, useRef } from "react";
 
 const scenes = ["1", "2"] as const;
 const sceneUrls = {
-  "1": "https://arobidglobal.shapespark.com/arobid_booth_mobile-test/",
-  "2": "https://arobidglobal.shapespark.com/arobid-demo/",
+  "1": "https://arobidglobal.shapespark.com/arobid_booth_mobile-test/#autoplay",
+  "2": "https://arobidglobal.shapespark.com/arobid-demo/#autoplay",
 };
 
 // Animation variants
