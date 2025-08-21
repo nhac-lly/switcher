@@ -5,26 +5,158 @@ import { Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Haptic feedback utility functions
+// Gamepad rumble helpers (uses Gamepad API when available)
+type RumbleParams = { duration: number; weak?: number; strong?: number };
+const rumbleGamepads = ({
+  duration,
+  weak = 0.5,
+  strong = 0.5,
+}: RumbleParams) => {
+  const pads = navigator.getGamepads?.() ?? [];
+  // is gamepad connected
+  const isGamepadConnected = pads.some((pad) => pad !== null);
+  if (!isGamepadConnected) {
+    return;
+  }
+  for (const pad of pads) {
+    const actuator = (pad as any)?.vibrationActuator;
+    if (actuator?.playEffect) {
+      try {
+        actuator.playEffect("dual-rumble", {
+          duration,
+          strongMagnitude: strong,
+          weakMagnitude: weak,
+        });
+      } catch {}
+    }
+  }
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const rumblePattern = async (
+  pattern: number[],
+  opts?: { weak?: number; strong?: number }
+) => {
+  for (let i = 0; i < pattern.length; i++) {
+    const t = pattern[i];
+    // Even indices are "on" durations in navigator.vibrate patterns
+    if (i % 2 === 0) {
+      if (t > 0) {
+        rumbleGamepads({
+          duration: t,
+          weak: opts?.weak ?? 0.4,
+          strong: opts?.strong ?? 0.4,
+        });
+      }
+    }
+    await sleep(Math.max(0, t));
+  }
+};
+
+// User-activation gate to avoid blocked vibrate warnings
+const runWithUserActivation = (fn: () => void) => {
+  const hasActivation = (navigator as any).userActivation?.hasBeenActive;
+  if (hasActivation || hasActivation === undefined) {
+    fn();
+    return;
+  }
+  const once = () => {
+    window.removeEventListener("pointerdown", once);
+    window.removeEventListener("keydown", once);
+    fn();
+  };
+  window.addEventListener("pointerdown", once, { once: true });
+  window.addEventListener("keydown", once, { once: true });
+};
+
 const haptic = {
-  light: () => navigator.vibrate?.(10),
-  medium: () => navigator.vibrate?.(20),
-  heavy: () => navigator.vibrate?.(30),
-  success: () => navigator.vibrate?.([10, 50, 20]),
-  error: () => navigator.vibrate?.([50, 100, 50]),
-  pattern: (pattern: number[]) => navigator.vibrate?.(pattern),
+  light: () =>
+    runWithUserActivation(() => {
+      rumbleGamepads({ duration: 10, weak: 0.2, strong: 0.2 });
+      navigator.vibrate?.(10);
+    }),
+  medium: () =>
+    runWithUserActivation(() => {
+      rumbleGamepads({ duration: 20, weak: 0.35, strong: 0.35 });
+      navigator.vibrate?.(20);
+    }),
+  heavy: () =>
+    runWithUserActivation(() => {
+      rumbleGamepads({ duration: 30, weak: 0.6, strong: 0.6 });
+      navigator.vibrate?.(30);
+    }),
+  success: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([10, 50, 20], { weak: 0.4, strong: 0.4 });
+      navigator.vibrate?.([10, 50, 20]);
+    }),
+  error: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([50, 100, 50], { weak: 0.7, strong: 0.7 });
+      navigator.vibrate?.([50, 100, 50]);
+    }),
+  pattern: (pattern: number[]) =>
+    runWithUserActivation(() => {
+      void rumblePattern(pattern);
+      navigator.vibrate?.(pattern);
+    }),
   // Custom haptic patterns
-  button: () => navigator.vibrate?.([5, 10, 5]),
-  card: () => navigator.vibrate?.([8, 15, 8]),
-  modal: () => navigator.vibrate?.([15, 30, 15]),
-  theme: () => navigator.vibrate?.([10, 20, 10]),
-  tab: () => navigator.vibrate?.([5, 8, 5]),
-  search: () => navigator.vibrate?.([3, 6, 3]),
+  button: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([5, 10, 5], { weak: 0.3, strong: 0.3 });
+      navigator.vibrate?.([5, 10, 5]);
+    }),
+  card: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([8, 15, 8], { weak: 0.35, strong: 0.35 });
+      navigator.vibrate?.([8, 15, 8]);
+    }),
+  modal: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([15, 30, 15], { weak: 0.5, strong: 0.5 });
+      navigator.vibrate?.([15, 30, 15]);
+    }),
+  theme: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([10, 20, 10], { weak: 0.35, strong: 0.35 });
+      navigator.vibrate?.([10, 20, 10]);
+    }),
+  tab: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([5, 8, 5], { weak: 0.3, strong: 0.3 });
+      navigator.vibrate?.([5, 8, 5]);
+    }),
+  search: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([3, 6, 3], { weak: 0.25, strong: 0.25 });
+      navigator.vibrate?.([3, 6, 3]);
+    }),
   // Additional haptic patterns for testing
-  notification: () => navigator.vibrate?.([100, 50, 100]),
-  alert: () => navigator.vibrate?.([200, 100, 200]),
-  tick: () => navigator.vibrate?.([5]),
-  double: () => navigator.vibrate?.([10, 0, 10]),
-  triple: () => navigator.vibrate?.([10, 0, 10, 0, 10]),
+  notification: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([100, 50, 100], { weak: 0.6, strong: 0.6 });
+      navigator.vibrate?.([100, 50, 100]);
+    }),
+  alert: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([200, 100, 200], { weak: 0.9, strong: 0.9 });
+      navigator.vibrate?.([200, 100, 200]);
+    }),
+  tick: () =>
+    runWithUserActivation(() => {
+      rumbleGamepads({ duration: 5, weak: 0.2, strong: 0.2 });
+      navigator.vibrate?.([5]);
+    }),
+  double: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([10, 0, 10], { weak: 0.35, strong: 0.35 });
+      navigator.vibrate?.([10, 0, 10]);
+    }),
+  triple: () =>
+    runWithUserActivation(() => {
+      void rumblePattern([10, 0, 10, 0, 10], { weak: 0.35, strong: 0.35 });
+      navigator.vibrate?.([10, 0, 10, 0, 10]);
+    }),
 };
 
 const themes = ["light", "dark"] as const;
