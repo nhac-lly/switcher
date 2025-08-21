@@ -4,11 +4,34 @@ import { useQueryState, parseAsString, parseAsStringEnum } from "nuqs";
 import { Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Haptic feedback utility functions
+const haptic = {
+  light: () => navigator.vibrate?.(10),
+  medium: () => navigator.vibrate?.(20),
+  heavy: () => navigator.vibrate?.(30),
+  success: () => navigator.vibrate?.([10, 50, 20]),
+  error: () => navigator.vibrate?.([50, 100, 50]),
+  pattern: (pattern: number[]) => navigator.vibrate?.(pattern),
+  // Custom haptic patterns
+  button: () => navigator.vibrate?.([5, 10, 5]),
+  card: () => navigator.vibrate?.([8, 15, 8]),
+  modal: () => navigator.vibrate?.([15, 30, 15]),
+  theme: () => navigator.vibrate?.([10, 20, 10]),
+  tab: () => navigator.vibrate?.([5, 8, 5]),
+  search: () => navigator.vibrate?.([3, 6, 3]),
+  // Additional haptic patterns for testing
+  notification: () => navigator.vibrate?.([100, 50, 100]),
+  alert: () => navigator.vibrate?.([200, 100, 200]),
+  tick: () => navigator.vibrate?.([5]),
+  double: () => navigator.vibrate?.([10, 0, 10]),
+  triple: () => navigator.vibrate?.([10, 0, 10, 0, 10]),
+};
+
 const themes = ["light", "dark"] as const;
 
 type Theme = (typeof themes)[number];
 
-const tabs = ["components", "theme-demo", "search-demo"] as const;
+const tabs = ["components", "theme-demo", "search-demo", "haptics"] as const;
 type Tab = (typeof tabs)[number];
 
 // Animation variants
@@ -74,6 +97,34 @@ export function Demo() {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Enhanced handlers with haptic feedback
+  const handleThemeChange = (newTheme: Theme) => {
+    haptic.theme();
+    setTheme(newTheme);
+  };
+
+  const handleTabChange = (newTab: Tab) => {
+    haptic.tab();
+    setActiveTab(newTab);
+  };
+
+  const handleModalOpen = () => {
+    haptic.modal();
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    haptic.button();
+    setIsModalOpen(false);
+  };
+
+  const handleSearchChange = (value: string) => {
+    if (value !== searchQuery) {
+      haptic.search();
+    }
+    setSearchQuery(value);
+  };
+
   const sampleData = [
     {
       id: 1,
@@ -134,12 +185,14 @@ export function Demo() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 100 }}
+        onAnimationStart={() => haptic.light()}
       >
         <div className="flex-1">
           <motion.a
             className="btn btn-ghost text-xl font-bold"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onTap={() => haptic.button()}
           >
             🎨 Demo App
           </motion.a>
@@ -152,6 +205,7 @@ export function Demo() {
               className="btn btn-ghost"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onTap={() => haptic.button()}
             >
               Theme: {theme}
               <motion.svg
@@ -162,6 +216,7 @@ export function Demo() {
                 animate={{ rotate: 0 }}
                 whileHover={{ rotate: 180 }}
                 transition={{ duration: 0.3 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <path
                   strokeLinecap="round"
@@ -178,6 +233,7 @@ export function Demo() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: -10 }}
               transition={{ duration: 0.2 }}
+              onAnimationStart={() => haptic.light()}
             >
               {themes.map((t, index) => (
                 <motion.li
@@ -187,10 +243,11 @@ export function Demo() {
                   transition={{ delay: index * 0.02 }}
                 >
                   <motion.a
-                    onClick={() => setTheme(t)}
+                    onClick={() => handleThemeChange(t)}
                     className={theme === t ? "active" : ""}
                     whileHover={{ x: 5 }}
                     transition={{ duration: 0.1 }}
+                    onTap={() => haptic.theme()}
                   >
                     {t}
                   </motion.a>
@@ -208,17 +265,19 @@ export function Demo() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          onAnimationStart={() => haptic.light()}
         >
           {tabs.map((tab, index) => (
             <motion.a
               key={tab}
               className={`tab ${activeTab === tab ? "tab-active" : ""}`}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * index }}
+              onTap={() => haptic.tab()}
             >
               {tab.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
             </motion.a>
@@ -237,12 +296,14 @@ export function Demo() {
               exit="exit"
               transition={{ duration: 0.3 }}
               className="space-y-8"
+              onAnimationStart={() => haptic.medium()}
             >
               <motion.div
                 className="hero bg-gradient-to-r from-primary to-secondary text-primary-content rounded-lg"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1, type: "spring", stiffness: 100 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <div className="hero-content text-center">
                   <div className="max-w-md">
@@ -251,6 +312,7 @@ export function Demo() {
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
+                      onAnimationStart={() => haptic.light()}
                     >
                       Hello there
                     </motion.h1>
@@ -259,14 +321,15 @@ export function Demo() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
+                      onAnimationStart={() => haptic.light()}
                     >
                       This is a demo showcasing Next.js with daisyUI components,
                       nuqs for URL state management, and Framer Motion
-                      animations.
+                      animations with haptic feedback!
                     </motion.p>
                     <motion.button
                       className="btn btn-accent"
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={handleModalOpen}
                       variants={buttonVariants}
                       whileHover="hover"
                       whileTap="tap"
@@ -277,6 +340,7 @@ export function Demo() {
                         type: "spring",
                         stiffness: 200,
                       }}
+                      onTap={() => haptic.button()}
                     >
                       Open Modal
                     </motion.button>
@@ -290,6 +354,7 @@ export function Demo() {
                 variants={staggerContainer}
                 initial="initial"
                 animate="animate"
+                onAnimationStart={() => haptic.light()}
               >
                 {[
                   {
@@ -319,6 +384,8 @@ export function Demo() {
                     animate="animate"
                     whileHover="hover"
                     transition={{ delay: index * 0.1 }}
+                    onHoverStart={() => haptic.card()}
+                    onTap={() => haptic.card()}
                   >
                     <div className="card-body">
                       <motion.h2
@@ -342,6 +409,7 @@ export function Demo() {
                           variants={buttonVariants}
                           whileHover="hover"
                           whileTap="tap"
+                          onTap={() => haptic.button()}
                         >
                           {card.btn}
                         </motion.button>
@@ -357,9 +425,10 @@ export function Demo() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <h2 className="text-2xl font-bold">
-                  Animated Button Variations
+                  Animated Button Variations with Haptics
                 </h2>
                 <motion.div
                   className="flex flex-wrap gap-2"
@@ -387,6 +456,7 @@ export function Demo() {
                       whileHover={{ scale: 1.1, rotate: [0, -1, 1, 0] }}
                       whileTap={{ scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
+                      onTap={() => haptic.button()}
                     >
                       {btn.text}
                     </motion.button>
@@ -400,6 +470,7 @@ export function Demo() {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <div className="space-y-4">
                   <h3 className="text-xl font-bold">
@@ -412,6 +483,7 @@ export function Demo() {
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ delay: 1.2, duration: 0.8 }}
+                    onAnimationComplete={() => haptic.light()}
                   />
                   <motion.progress
                     className="progress progress-secondary w-full"
@@ -420,6 +492,7 @@ export function Demo() {
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ delay: 1.4, duration: 0.8 }}
+                    onAnimationComplete={() => haptic.light()}
                   />
                   <motion.progress
                     className="progress progress-accent w-full"
@@ -428,6 +501,7 @@ export function Demo() {
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ delay: 1.6, duration: 0.8 }}
+                    onAnimationComplete={() => haptic.success()}
                   />
                 </div>
 
@@ -435,6 +509,7 @@ export function Demo() {
                   className="stats shadow"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
+                  onHoverStart={() => haptic.light()}
                 >
                   <div className="stat">
                     <div className="stat-title">Total Page Views</div>
@@ -447,6 +522,7 @@ export function Demo() {
                         type: "spring",
                         stiffness: 200,
                       }}
+                      onAnimationComplete={() => haptic.success()}
                     >
                       89,400
                     </motion.div>
@@ -467,12 +543,14 @@ export function Demo() {
               exit="exit"
               transition={{ duration: 0.3 }}
               className="space-y-6"
+              onAnimationStart={() => haptic.medium()}
             >
               <motion.div
                 className="alert alert-info"
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -499,6 +577,7 @@ export function Demo() {
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
+                  onAnimationStart={() => haptic.light()}
                 >
                   <h3 className="text-xl font-bold">Color Palette</h3>
                   <motion.div
@@ -523,6 +602,7 @@ export function Demo() {
                         variants={staggerItem}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         transition={{ delay: index * 0.05 }}
+                        onTap={() => haptic.light()}
                       >
                         {badge.text}
                       </motion.div>
@@ -535,12 +615,14 @@ export function Demo() {
                   initial={{ opacity: 0, x: 30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 }}
+                  onAnimationStart={() => haptic.light()}
                 >
                   <h3 className="text-xl font-bold">Theme Preview</h3>
                   <motion.div
                     className="mockup-window border bg-base-300"
                     whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.2 }}
+                    onHoverStart={() => haptic.light()}
                   >
                     <div className="flex justify-center px-4 py-16 bg-base-200">
                       <div className="text-center">
@@ -575,7 +657,7 @@ export function Demo() {
                 {themes.slice(0, 12).map((t, index) => (
                   <motion.button
                     key={t}
-                    onClick={() => setTheme(t)}
+                    onClick={() => handleThemeChange(t)}
                     className={`btn btn-sm ${
                       theme === t ? "btn-primary" : "btn-outline"
                     }`}
@@ -583,6 +665,7 @@ export function Demo() {
                     whileHover={{ scale: 1.05, rotate: [0, -2, 2, 0] }}
                     whileTap={{ scale: 0.95 }}
                     transition={{ delay: index * 0.03 }}
+                    onTap={() => haptic.theme()}
                   >
                     {t}
                   </motion.button>
@@ -601,12 +684,14 @@ export function Demo() {
               exit="exit"
               transition={{ duration: 0.3 }}
               className="space-y-6"
+              onAnimationStart={() => haptic.medium()}
             >
               <motion.div
                 className="alert alert-success"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -631,6 +716,7 @@ export function Demo() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <label className="label">
                   <span className="label-text">Search technologies:</span>
@@ -640,9 +726,10 @@ export function Demo() {
                   placeholder="Search for frameworks, libraries, tools..."
                   className="input input-bordered w-full"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   whileFocus={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
+                  onFocus={() => haptic.light()}
                 />
               </motion.div>
 
@@ -666,6 +753,8 @@ export function Demo() {
                         whileHover="hover"
                         layout
                         transition={{ delay: index * 0.05 }}
+                        onHoverStart={() => haptic.card()}
+                        onTap={() => haptic.card()}
                       >
                         <div className="card-body">
                           <motion.h2
@@ -684,6 +773,7 @@ export function Demo() {
                                 type: "spring",
                                 stiffness: 300,
                               }}
+                              onAnimationComplete={() => haptic.light()}
                             >
                               {item.category}
                             </motion.div>
@@ -715,6 +805,7 @@ export function Demo() {
                           repeat: Infinity,
                           repeatDelay: 1,
                         }}
+                        onAnimationStart={() => haptic.light()}
                       >
                         🔍
                       </motion.div>
@@ -723,9 +814,10 @@ export function Demo() {
                       </p>
                       <motion.button
                         className="btn btn-ghost btn-sm mt-2"
-                        onClick={() => setSearchQuery("")}
+                        onClick={() => handleSearchChange("")}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        onTap={() => haptic.button()}
                       >
                         Clear search
                       </motion.button>
@@ -733,6 +825,478 @@ export function Demo() {
                   )}
                 </motion.div>
               </AnimatePresence>
+            </motion.div>
+          )}
+
+          {/* Haptics Tab */}
+          {activeTab === "haptics" && (
+            <motion.div
+              key="haptics"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+              onAnimationStart={() => haptic.medium()}
+            >
+              {/* Hero Section */}
+              <motion.div
+                className="hero bg-gradient-to-r from-primary to-secondary text-primary-content rounded-lg p-8"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 100 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="hero-content text-center">
+                  <div className="max-w-2xl">
+                    <motion.h1
+                      className="text-4xl font-bold mb-4"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      onAnimationStart={() => haptic.light()}
+                    >
+                      🎯 Haptic Feedback Testing Lab
+                    </motion.h1>
+                    <motion.p
+                      className="py-4 text-lg"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      onAnimationStart={() => haptic.light()}
+                    >
+                      Test all forms of haptic feedback to find the perfect
+                      patterns for your app's user experience. Each button
+                      triggers a different haptic sensation - try them all!
+                    </motion.p>
+                    <motion.div
+                      className="badge badge-lg badge-outline"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      Works on mobile devices with Vibration API
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Basic Intensity Section */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    📊 Basic Haptic Intensities
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <motion.button
+                      className="btn btn-primary btn-lg"
+                      onClick={() => haptic.light()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.light()}
+                    >
+                      <span className="text-2xl">⚡</span>
+                      <div className="text-left">
+                        <div className="font-bold">Light</div>
+                        <div className="text-xs opacity-70">10ms vibration</div>
+                      </div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-secondary btn-lg"
+                      onClick={() => haptic.medium()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.medium()}
+                    >
+                      <span className="text-2xl">⚡⚡</span>
+                      <div className="text-left">
+                        <div className="font-bold">Medium</div>
+                        <div className="text-xs opacity-70">20ms vibration</div>
+                      </div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-accent btn-lg"
+                      onClick={() => haptic.heavy()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.heavy()}
+                    >
+                      <span className="text-2xl">⚡⚡⚡</span>
+                      <div className="text-left">
+                        <div className="font-bold">Heavy</div>
+                        <div className="text-xs opacity-70">30ms vibration</div>
+                      </div>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Success/Error Section */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    ✅❌ Success & Error Patterns
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <motion.button
+                      className="btn btn-success btn-lg w-full"
+                      onClick={() => haptic.success()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.success()}
+                    >
+                      <span className="text-2xl">✅</span>
+                      <div className="text-left">
+                        <div className="font-bold">Success Pattern</div>
+                        <div className="text-xs opacity-70">
+                          [10, 50, 20] - Gentle confirmation
+                        </div>
+                      </div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-error btn-lg w-full"
+                      onClick={() => haptic.error()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.error()}
+                    >
+                      <span className="text-2xl">❌</span>
+                      <div className="text-left">
+                        <div className="font-bold">Error Pattern</div>
+                        <div className="text-xs opacity-70">
+                          [50, 100, 50] - Attention alert
+                        </div>
+                      </div>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Custom Pattern Section */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    🎛️ Custom Pattern Creator
+                  </h2>
+                  <div className="space-y-4">
+                    <motion.input
+                      type="text"
+                      placeholder="Enter custom pattern (e.g., 100, 50, 100, 200)"
+                      className="input input-bordered input-lg w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const pattern = e.currentTarget.value
+                            .split(",")
+                            .map((p) => parseInt(p.trim(), 10))
+                            .filter((p) => !isNaN(p));
+                          if (pattern.length > 0) {
+                            haptic.pattern(pattern);
+                          }
+                        }
+                      }}
+                      whileFocus={{ scale: 1.02 }}
+                      transition={{ duration: 0.2 }}
+                      onFocus={() => haptic.light()}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <motion.button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => haptic.pattern([100, 50, 100])}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onTap={() => haptic.pattern([100, 50, 100])}
+                      >
+                        Quick Test: [100, 50, 100]
+                      </motion.button>
+                      <motion.button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => haptic.pattern([50, 100, 50])}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onTap={() => haptic.pattern([50, 100, 50])}
+                      >
+                        Quick Test: [50, 100, 50]
+                      </motion.button>
+                    </div>
+                    <p className="text-sm opacity-70">
+                      💡 Press Enter to test your custom pattern. Format:
+                      comma-separated milliseconds
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* UI Component Haptics */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    🎨 UI Component Haptics
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <motion.button
+                      className="btn btn-outline btn-primary"
+                      onClick={() => haptic.button()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.button()}
+                    >
+                      <span className="text-xl">🔘</span>
+                      Button Haptic
+                      <div className="text-xs opacity-70">[5, 10, 5]</div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-outline btn-secondary"
+                      onClick={() => haptic.card()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.card()}
+                    >
+                      <span className="text-xl">🃏</span>
+                      Card Haptic
+                      <div className="text-xs opacity-70">[8, 15, 8]</div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-outline btn-accent"
+                      onClick={() => haptic.modal()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.modal()}
+                    >
+                      <span className="text-xl">🪟</span>
+                      Modal Haptic
+                      <div className="text-xs opacity-70">[15, 30, 15]</div>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Navigation Haptics */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    🧭 Navigation Haptics
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <motion.button
+                      className="btn btn-outline btn-info"
+                      onClick={() => haptic.theme()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.theme()}
+                    >
+                      <span className="text-xl">🎨</span>
+                      Theme Haptic
+                      <div className="text-xs opacity-70">[10, 20, 10]</div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-outline btn-warning"
+                      onClick={() => haptic.tab()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.tab()}
+                    >
+                      <span className="text-xl">📑</span>
+                      Tab Haptic
+                      <div className="text-xs opacity-70">[5, 8, 5]</div>
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-outline btn-success"
+                      onClick={() => haptic.search()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.search()}
+                    >
+                      <span className="text-xl">🔍</span>
+                      Search Haptic
+                      <div className="text-xs opacity-70">[3, 6, 3]</div>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Advanced Patterns */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    🚀 Advanced Haptic Patterns
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <motion.button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => haptic.pattern([10, 20, 30, 40, 50])}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.pattern([10, 20, 30, 40, 50])}
+                    >
+                      📈 Ascending
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => haptic.pattern([50, 40, 30, 20, 10])}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.pattern([50, 40, 30, 20, 10])}
+                    >
+                      📉 Descending
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => haptic.pattern([20, 0, 20, 0, 20])}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.pattern([20, 0, 20, 0, 20])}
+                    >
+                      💓 Pulsing
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() =>
+                        haptic.pattern([100, 0, 100, 0, 100, 0, 100])
+                      }
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() =>
+                        haptic.pattern([100, 0, 100, 0, 100, 0, 100])
+                      }
+                    >
+                      📡 Morse-like
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Special Effects */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    ✨ Special Haptic Effects
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-info"
+                      onClick={() => haptic.notification()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.notification()}
+                    >
+                      🔔 Notification
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-warning"
+                      onClick={() => haptic.alert()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.alert()}
+                    >
+                      ⚠️ Alert
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-success"
+                      onClick={() => haptic.tick()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.tick()}
+                    >
+                      ✅ Tick
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-primary"
+                      onClick={() => haptic.double()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.double()}
+                    >
+                      👆👆 Double
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-secondary"
+                      onClick={() => haptic.triple()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => haptic.triple()}
+                    >
+                      👆👆👆 Triple
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Haptic Info */}
+              <motion.div
+                className="alert alert-info"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="stroke-current shrink-0 w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                <div>
+                  <h3 className="font-bold">Haptic Feedback Tips</h3>
+                  <div className="text-sm">
+                    • <strong>Light haptics</strong> for subtle interactions
+                    <br />• <strong>Medium haptics</strong> for confirmations
+                    <br />• <strong>Heavy haptics</strong> for important actions
+                    <br />• <strong>Patterns</strong> for unique experiences
+                    <br />• <strong>Custom patterns</strong> for brand-specific
+                    feedback
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -747,6 +1311,7 @@ export function Demo() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
+            onAnimationStart={() => haptic.modal()}
           >
             <motion.div
               className="modal-box"
@@ -765,6 +1330,7 @@ export function Demo() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
+                onAnimationStart={() => haptic.light()}
               >
                 Hello from daisyUI Modal! 🎉
               </motion.h3>
@@ -773,29 +1339,34 @@ export function Demo() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
+                onAnimationStart={() => haptic.light()}
               >
                 This modal demonstrates daisyUI's modal component with beautiful
-                Framer Motion animations and React state management.
+                Framer Motion animations, haptic feedback, and React state
+                management.
               </motion.p>
               <motion.div
                 className="modal-action"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
+                onAnimationStart={() => haptic.light()}
               >
                 <motion.button
                   className="btn"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleModalClose}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onTap={() => haptic.button()}
                 >
                   Close
                 </motion.button>
                 <motion.button
                   className="btn btn-primary"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleModalClose}
                   whileHover={{ scale: 1.05, rotate: [0, -1, 1, 0] }}
                   whileTap={{ scale: 0.95 }}
+                  onTap={() => haptic.button()}
                 >
                   Got it!
                 </motion.button>
