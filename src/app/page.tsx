@@ -4,10 +4,11 @@ import { useQueryState, parseAsStringEnum } from "nuqs";
 import { motion } from "framer-motion";
 import { Suspense, useRef } from "react";
 
-const scenes = ["1", "2"] as const;
+const scenes = ["1", "2", "3"] as const;
 const sceneUrls = {
-  "1": "https://arobidglobal.shapespark.com/arobid_booth_mobile-test/#autoplay",
-  "2": "https://arobidglobal.shapespark.com/arobid-demo/#autoplay",
+  "1": "https://arobidglobal.shapespark.com/_vec/#autoplay",
+  "2": "https://arobidglobal.shapespark.com/_vec_mainhall/#autoplay",
+  "3": "https://arobidglobal.shapespark.com/_vec_hall3/#autoplay",
 };
 
 // Animation variants

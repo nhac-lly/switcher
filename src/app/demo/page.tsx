@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryState, parseAsString, parseAsStringEnum } from "nuqs";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Haptic feedback utility functions
@@ -228,6 +228,9 @@ export function Demo() {
     parseAsString.withDefault("")
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const focusIndexRef = useRef<number>(-1);
+  const [hasHapticTrackpad, setHasHapticTrackpad] = useState(false);
 
   // Enhanced handlers with haptic feedback
   const handleThemeChange = (newTheme: Theme) => {
@@ -256,6 +259,244 @@ export function Demo() {
     }
     setSearchQuery(value);
   };
+
+  // Check for haptic trackpad support
+  useEffect(() => {
+    const checkHapticTrackpad = () => {
+      // Check for Pointer Haptics API support
+      const hasPointerHaptics =
+        "vibrate" in navigator && "setPointerCapture" in Element.prototype;
+      // Check for WebHaptics API (Chrome/Edge)
+      const hasWebHaptics = "vibrate" in navigator && "haptic" in navigator;
+      // Check for Vibration API
+      const hasVibration = "vibrate" in navigator;
+
+      setHasHapticTrackpad(hasPointerHaptics || hasWebHaptics || hasVibration);
+    };
+
+    checkHapticTrackpad();
+    // Re-check on focus to handle dynamic device changes
+    window.addEventListener("focus", checkHapticTrackpad);
+    return () => window.removeEventListener("focus", checkHapticTrackpad);
+  }, []);
+
+  // Enhanced haptic feedback with trackpad support
+  const enhancedHaptic = {
+    ...haptic,
+    // Trackpad-specific haptics
+    trackpad: {
+      light: () => {
+        if (hasHapticTrackpad) {
+          // Use Pointer Haptics if available
+          if ("haptic" in navigator) {
+            try {
+              (navigator as any).haptic?.impact("light");
+            } catch {}
+          }
+          // Fallback to vibration
+          navigator.vibrate?.(5);
+        }
+      },
+      medium: () => {
+        if (hasHapticTrackpad) {
+          if ("haptic" in navigator) {
+            try {
+              (navigator as any).haptic?.impact("medium");
+            } catch {}
+          }
+          navigator.vibrate?.(10);
+        }
+      },
+      heavy: () => {
+        if (hasHapticTrackpad) {
+          if ("haptic" in navigator) {
+            try {
+              (navigator as any).haptic?.impact("heavy");
+            } catch {}
+          }
+          navigator.vibrate?.(15);
+        }
+      },
+      selection: () => {
+        if (hasHapticTrackpad) {
+          if ("haptic" in navigator) {
+            try {
+              (navigator as any).haptic?.selection();
+            } catch {}
+          }
+          navigator.vibrate?.([5, 10, 5]);
+        }
+      },
+      notification: () => {
+        if (hasHapticTrackpad) {
+          if ("haptic" in navigator) {
+            try {
+              (navigator as any).haptic?.notification("success");
+            } catch {}
+          }
+          navigator.vibrate?.([10, 20, 10]);
+        }
+      },
+    },
+  };
+
+  // Gamepad navigation: LB/RB to switch tabs, D-pad to move focus, A to activate
+  useEffect(() => {
+    let rafId = 0;
+    const buttonStates = new Map<string, boolean>();
+    const actionCooldowns = new Map<string, number>();
+
+    const getFocusables = (): HTMLElement[] => {
+      const container = rootRef.current;
+      if (!container) return [];
+      const nodes = container.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      return Array.from(nodes).filter(
+        (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1
+      );
+    };
+
+    const moveFocus = (delta: number) => {
+      const focusables = getFocusables();
+      if (focusables.length === 0) return;
+      let idx = focusIndexRef.current;
+      if (document.activeElement) {
+        const current = focusables.indexOf(
+          document.activeElement as HTMLElement
+        );
+        if (current !== -1) idx = current;
+      }
+      idx = (idx + delta + focusables.length) % focusables.length;
+      focusIndexRef.current = idx;
+      const el = focusables[idx];
+      el.focus();
+      el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      haptic.light();
+    };
+
+    const nextTab = () => {
+      const idx = tabs.indexOf(activeTab);
+      const next = tabs[(idx + 1) % tabs.length];
+      handleTabChange(next);
+    };
+
+    const prevTab = () => {
+      const idx = tabs.indexOf(activeTab);
+      const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+      handleTabChange(prev);
+    };
+
+    const clickFocused = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && typeof (el as any).click === "function") {
+        (el as any).click();
+        haptic.button();
+      }
+    };
+
+    const handleButtonAction = (
+      buttonKey: string,
+      action: () => void,
+      cooldownMs: number = 200
+    ) => {
+      const now = Date.now();
+      const lastAction = actionCooldowns.get(buttonKey) || 0;
+
+      if (now - lastAction > cooldownMs) {
+        action();
+        actionCooldowns.set(buttonKey, now);
+      }
+    };
+
+    const poll = () => {
+      const pads = navigator.getGamepads?.() ?? [];
+      for (const pad of pads) {
+        if (!pad) continue;
+
+        // Standard mapping: 0=A, 1=B, 4=LB, 5=RB, 12=Up, 13=Down, 14=Left, 15=Right
+        const buttonMappings = {
+          A: 0,
+          B: 1,
+          LB: 4,
+          RB: 5,
+          DPAD_UP: 12,
+          DPAD_DOWN: 13,
+          DPAD_LEFT: 14,
+          DPAD_RIGHT: 15,
+        };
+
+        // Check each button state
+        Object.entries(buttonMappings).forEach(([buttonKey, buttonIndex]) => {
+          const isPressed = !!pad.buttons[buttonIndex]?.pressed;
+          const wasPressed = buttonStates.get(buttonKey) || false;
+
+          // Handle button press (rising edge)
+          if (isPressed && !wasPressed) {
+            buttonStates.set(buttonKey, true);
+
+            // Execute actions based on button
+            switch (buttonKey) {
+              case "LB":
+                handleButtonAction(buttonKey, prevTab, 300);
+                break;
+              case "RB":
+                handleButtonAction(buttonKey, nextTab, 300);
+                break;
+              case "DPAD_UP":
+              case "DPAD_DOWN":
+              case "DPAD_LEFT":
+              case "DPAD_RIGHT":
+                handleButtonAction(
+                  buttonKey,
+                  () =>
+                    moveFocus(
+                      buttonKey.includes("UP") || buttonKey.includes("LEFT")
+                        ? -1
+                        : 1
+                    ),
+                  150
+                );
+                break;
+              case "A":
+                handleButtonAction(
+                  buttonKey,
+                  () => {
+                    clickFocused();
+                    enhancedHaptic.trackpad.selection();
+                  },
+                  200
+                );
+                break;
+              case "B":
+                handleButtonAction(
+                  buttonKey,
+                  () => {
+                    if (isModalOpen) {
+                      handleModalClose();
+                    } else {
+                      moveFocus(-1);
+                    }
+                    enhancedHaptic.trackpad.light();
+                  },
+                  200
+                );
+                break;
+            }
+          }
+
+          // Handle button release (falling edge)
+          if (!isPressed && wasPressed) {
+            buttonStates.set(buttonKey, false);
+          }
+        });
+      }
+      rafId = requestAnimationFrame(poll);
+    };
+
+    rafId = requestAnimationFrame(poll);
+    return () => cancelAnimationFrame(rafId);
+  }, [activeTab, isModalOpen, enhancedHaptic.trackpad]);
 
   const sampleData = [
     {
@@ -310,7 +551,12 @@ export function Demo() {
   );
 
   return (
-    <div data-theme={theme} className="min-h-screen">
+    <div
+      ref={rootRef}
+      data-theme={theme}
+      className="min-h-screen"
+      tabIndex={-1}
+    >
       {/* Header */}
       <motion.div
         className="navbar bg-base-100 shadow-lg"
@@ -330,6 +576,17 @@ export function Demo() {
           </motion.a>
         </div>
         <div className="flex-none gap-2">
+          {/* Haptic Status Indicators */}
+          <div className="flex items-center gap-2 mr-4">
+            <div className="badge badge-outline badge-sm">🎮 Gamepad</div>
+            <div
+              className={`badge badge-sm ${
+                hasHapticTrackpad ? "badge-success" : "badge-error"
+              }`}
+            >
+              🎯 Trackpad {hasHapticTrackpad ? "✅" : "❌"}
+            </div>
+          </div>
           <div className="dropdown dropdown-end">
             <motion.div
               tabIndex={0}
@@ -1029,15 +1286,23 @@ export function Demo() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <motion.button
                       className="btn btn-primary btn-lg"
-                      onClick={() => haptic.light()}
+                      onClick={() => {
+                        haptic.light();
+                        enhancedHaptic.trackpad.light();
+                      }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onTap={() => haptic.light()}
+                      onTap={() => {
+                        haptic.light();
+                        enhancedHaptic.trackpad.light();
+                      }}
                     >
                       <span className="text-2xl">⚡</span>
                       <div className="text-left">
                         <div className="font-bold">Light</div>
-                        <div className="text-xs opacity-70">10ms vibration</div>
+                        <div className="text-xs opacity-70">
+                          10ms + Trackpad
+                        </div>
                       </div>
                     </motion.button>
                     <motion.button
@@ -1085,16 +1350,22 @@ export function Demo() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <motion.button
                       className="btn btn-success btn-lg w-full"
-                      onClick={() => haptic.success()}
+                      onClick={() => {
+                        haptic.success();
+                        enhancedHaptic.trackpad.selection();
+                      }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onTap={() => haptic.success()}
+                      onTap={() => {
+                        haptic.success();
+                        enhancedHaptic.trackpad.selection();
+                      }}
                     >
                       <span className="text-2xl">✅</span>
                       <div className="text-left">
                         <div className="font-bold">Success Pattern</div>
                         <div className="text-xs opacity-70">
-                          [10, 50, 20] - Gentle confirmation
+                          [10, 50, 20] + Trackpad Selection
                         </div>
                       </div>
                     </motion.button>
@@ -1391,6 +1662,100 @@ export function Demo() {
                       onTap={() => haptic.triple()}
                     >
                       👆👆👆 Triple
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Trackpad Haptics */}
+              <motion.div
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.85 }}
+                onAnimationStart={() => haptic.light()}
+              >
+                <div className="card-body">
+                  <h2 className="card-title text-2xl mb-4">
+                    🎯 Trackpad Haptics {hasHapticTrackpad ? "✅" : "❌"}
+                  </h2>
+                  <div className="mb-4">
+                    <div className="alert alert-info">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        className="stroke-current shrink-0 w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                      <div>
+                        <strong>Trackpad Haptics:</strong>{" "}
+                        {hasHapticTrackpad ? "Supported" : "Not supported"} on
+                        this device
+                        <br />
+                        <span className="text-xs">
+                          Uses Pointer Haptics API, WebHaptics API, or Vibration
+                          API fallback
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-primary"
+                      onClick={() => enhancedHaptic.trackpad.light()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => enhancedHaptic.trackpad.light()}
+                      disabled={!hasHapticTrackpad}
+                    >
+                      💡 Light Impact
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-secondary"
+                      onClick={() => enhancedHaptic.trackpad.medium()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => enhancedHaptic.trackpad.medium()}
+                      disabled={!hasHapticTrackpad}
+                    >
+                      ⚖️ Medium Impact
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-accent"
+                      onClick={() => enhancedHaptic.trackpad.heavy()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => enhancedHaptic.trackpad.heavy()}
+                      disabled={!hasHapticTrackpad}
+                    >
+                      🔨 Heavy Impact
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-success"
+                      onClick={() => enhancedHaptic.trackpad.selection()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => enhancedHaptic.trackpad.selection()}
+                      disabled={!hasHapticTrackpad}
+                    >
+                      ✨ Selection
+                    </motion.button>
+                    <motion.button
+                      className="btn btn-sm btn-outline btn-info"
+                      onClick={() => enhancedHaptic.trackpad.notification()}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onTap={() => enhancedHaptic.trackpad.notification()}
+                      disabled={!hasHapticTrackpad}
+                    >
+                      🔔 Notification
                     </motion.button>
                   </div>
                 </div>
