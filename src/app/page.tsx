@@ -6,9 +6,9 @@ import { Suspense, useRef } from "react";
 
 const scenes = ["1", "2", "3"] as const;
 const sceneUrls = {
-  "1": "https://arobidglobal.shapespark.com/_vec/#autoplay",
-  "2": "https://arobidglobal.shapespark.com/_vec_mainhall/#autoplay",
-  "3": "https://arobidglobal.shapespark.com/_vec_hall3/#autoplay",
+  "1": "https://threed.arobid.com/3d/ck8XO4Ud0bB6QMP1Z+NSPA==/viewer#autoplay",
+  "2": "https://threed.arobid.com/3d/rL+431JWH9yfDqt50O8hsA==/viewer#autoplay",
+  "3": "https://threed.arobid.com/3d/7YqMSGBroj3SXdhgk3d+Gg==/viewer#autoplay",
 };
 
 // Animation variants
