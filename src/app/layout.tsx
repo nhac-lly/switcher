@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -18,7 +18,11 @@ export const metadata: Metadata = {
   description: "A demo showcasing Next.js with Tailwind CSS, daisyUI, and nuqs",
 };
 
-export default function RootLayout({
+export const viewport: Viewport = {
+  themeColor: 'oklch(78.119% 0.192 132.154)',
+};
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

@@ -132,7 +132,7 @@ const ThreeDPage = async () => {
                 <motion.h2 {...motionProps} className="card-title">{scene.name}</motion.h2>
                 <motion.div {...motionProps} className="card-actions justify-end">
                   <div  className="join border border-gray-300/30 rounded-md">
-                  <Link href={scene.sceneUrl} className="btn btn-sm btn-info join-item hover:scale-105">
+                  <Link href={scene.sceneUrl} className="btn btn-sm glass btn-primary join-item hover:scale-105">
                     View
                   </Link>
                   <Link
@@ -142,7 +142,7 @@ const ThreeDPage = async () => {
                       editTokenData.data +
                       "&next=editor"
                     }
-                    className="btn btn-sm btn-neutral join-item hover:scale-105"
+                    className="btn btn-sm glass btn-secondary join-item hover:scale-105"
                   >
                     Edit
                   </Link>

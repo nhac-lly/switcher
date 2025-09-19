@@ -29,7 +29,9 @@ const LoginPage = () => {
           bounceDamping: 18,
           timeConstant: 120,
         }}
-        className="card relative bg-gradient-to-r from-primary/50 to-secondary/50 image-full w-96 shadow-sm backdrop-blur-xl"
+        className="card relative 
+        bg-gradient-to-r from-primary/50 to-secondary/50 
+        image-full w-96 shadow-sm backdrop-blur-xl"
         {...motionProps}
       >
         {/* gradient shadow */}
@@ -47,7 +49,7 @@ const LoginPage = () => {
           className="card-body flex flex-col justify-between gap-4"
         >
           <motion.h1 {...motionProps} className="card-title">
-            Login
+            Enter your credentials
           </motion.h1>
           <motion.form
             {...motionProps}
@@ -56,18 +58,21 @@ const LoginPage = () => {
           >
             <motion.input
               {...motionProps}
-              className="input input-bordered"
-              type="text"
+              className="input input-bordered validator"
+              type="email"
+              required
               name="username"
               placeholder="Username"
             />
             <motion.input
               {...motionProps}
-              className="input input-bordered"
+              className="input input-bordered validator"
               type="password"
+              required
               name="password"
               placeholder="Password"
             />
+            
             <motion.div {...motionProps} className="card-actions justify-end">
               <motion.button
                 {...motionProps}
