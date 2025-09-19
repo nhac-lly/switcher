@@ -20,7 +20,6 @@ export const handleSubmit = async (formData: FormData) => {
   });
   const data = await response.json();
   if (data?.data?.accessToken) {
-    const cookieStore = await cookies();
     cookieStore.set("token", data.data.accessToken);
     const businessResponse = await fetch(
       `${loginEndpoint}/api/business/business-by-user`,
@@ -34,7 +33,6 @@ export const handleSubmit = async (formData: FormData) => {
     );
     const businessData = await businessResponse.json();
     if (businessData?.data?.length > 0) {
-      const cookieStore = await cookies();
       cookieStore.set("businessId", businessData.data[0].id);
     }
     redirect("/3d");

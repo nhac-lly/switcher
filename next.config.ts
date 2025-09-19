@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [new URL("https://http.cat/*")],
+  },
 };
 
 export default nextConfig;
