@@ -15,7 +15,7 @@ const motionProps: MotionProps = {
 const LoginPage = () => {
   return (
     <motion.div
-      className="flex justify-center  items-center h-screen"
+      className="flex justify-center items-center min-h-screen overflow-y-auto"
       {...motionProps}
     >
       <motion.div
@@ -35,7 +35,7 @@ const LoginPage = () => {
         {...motionProps}
       >
         {/* gradient shadow */}
-        <motion.div
+        {/* <motion.div
           animate={{ rotate: 360 }}
           transition={{
             repeat: Infinity,
@@ -43,7 +43,7 @@ const LoginPage = () => {
             duration: 5, // slow spin in seconds
           }}
           className="w-96 h-96 absolute inset-x-0 -inset-y-1/3 mx-auto rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 blur-2xl opacity-70"
-        />
+        /> */}
         <motion.div
           {...motionProps}
           className="card-body flex flex-col justify-between gap-4"

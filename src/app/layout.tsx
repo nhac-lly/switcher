@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: 'oklch(0.8305 0.4606 152.87)',
+  viewportFit: 'cover',
 };
 
 export default async function RootLayout({
