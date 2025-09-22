@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 // Configure maximum file size (10MB per file)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 10; // Maximum number of files per upload
@@ -27,14 +34,14 @@ export async function POST(request: NextRequest) {
     if (!files || files.length === 0) {
       return NextResponse.json(
         { error: 'No files provided' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
     if (files.length > MAX_FILES) {
       return NextResponse.json(
         { error: `Too many files. Maximum ${MAX_FILES} files allowed.` },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -98,13 +105,21 @@ export async function POST(request: NextRequest) {
       message: `${uploadResults.length} files uploaded successfully`,
       data: uploadResults,
       errors: errors.length > 0 ? errors : undefined
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Multiple upload error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
+}
+
+// Handle preflight OPTIONS request
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
 }
