@@ -1,35 +1,17 @@
 import { NextResponse } from 'next/server';
-import { readdir, stat } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { list } from '@vercel/blob';
 
 export async function GET() {
   try {
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    const { blobs } = await list();
     
-    if (!existsSync(uploadsDir)) {
-      return NextResponse.json({
-        success: true,
-        files: [],
-        message: 'No uploads directory found'
-      });
-    }
-
-    const files = await readdir(uploadsDir);
-    const fileDetails = await Promise.all(
-      files.map(async (fileName) => {
-        const filePath = join(uploadsDir, fileName);
-        const stats = await stat(filePath);
-        
-        return {
-          fileName,
-          size: stats.size,
-          createdAt: stats.birthtime,
-          modifiedAt: stats.mtime,
-          url: `/uploads/${fileName}`
-        };
-      })
-    );
+    const fileDetails = blobs.map((blob) => ({
+      fileName: blob.pathname,
+      size: blob.size,
+      createdAt: blob.uploadedAt,
+      url: blob.url,
+      downloadUrl: blob.downloadUrl
+    }));
 
     // Sort by creation date (newest first)
     fileDetails.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
